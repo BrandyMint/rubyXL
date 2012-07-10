@@ -242,8 +242,7 @@ module RubyXL
         wb.worksheets[i].sheet_name = sheet_names[i].to_s
       end
 
-      # cleanup
-      FileUtils.rm_rf(dir_path)
+      wb.dir_path = dir_path
       wb
     end
 
