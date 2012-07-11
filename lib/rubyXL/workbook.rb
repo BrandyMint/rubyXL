@@ -19,7 +19,7 @@ module RubyXL
       :borders, :cell_xfs, :cell_style_xfs, :cell_styles, :shared_strings, :calc_chain,
       :num_strings, :size, :date1904, :external_links, :style_corrector, :drawings,
       :worksheet_rels, :printer_settings, :macros, :colors, :shared_strings_XML, :defined_names, 
-      :column_lookup_hash, :dir_path
+      :column_lookup_hash, :dir_path, :cord_media
 
 
     APPLICATION = 'Microsoft Macintosh Excel'
@@ -326,6 +326,7 @@ module RubyXL
     # отдает Hash всех медиа-файлов 
     def media
       media_hash  = Hash.new
+      @cord_media = Hash.new
 
       xml_draw_rels = Nokogiri::XML(open(dir_path+ '/xl/drawings/_rels/drawing1.xml.rels'))
       xml_draw      = Nokogiri::XML(open(dir_path+ '/xl/drawings/drawing1.xml'))
@@ -340,25 +341,39 @@ module RubyXL
       array_to_row      = xml_draw.xpath('//xdr:to//xdr:row').children.collect      {|child| child.to_s}
       array_to_rowOff   = xml_draw.xpath('//xdr:to//xdr:rowOff').children.collect   {|child| child.to_s}
 
-
       array_path    = xml_draw_rels.children.children.collect {|elem| elem["Target"]}
       array_rId     = xml_draw_rels.children.children.collect {|elem| elem["Id"]}
-
+      
       i=0
       while i < (array_rId.count-1)
-        media_hash[array_rId[i].to_sym] = {:path => (dir_path + '/xl' + array_path[i].gsub(/[..]/,'')),
-                                           :from => {:col    => array_from_col[i],
-                                                     :colOff => array_from_colOff[i],
-                                                     :row    => array_from_row[i],
-                                                     :rowOff => array_from_rowOff[i]},
-                                           :to   => {:col    => array_to_col[i],
-                                                     :colOff => array_to_colOff[i],
-                                                     :row    => array_to_row[i],
-                                                     :rowOff => array_to_rowOff[i]}
-                                          }
+        rId_sym = array_rId[i].to_sym
+        col_sym = array_from_col[i].to_sym
+        row_sym = array_from_row[i].to_sym
+
+        media_hash[rId_sym] =  {:path => (dir_path + '/xl' + array_path[i].gsub(/[..]/,'')),
+                                 :from => {:col    => array_from_col[i],
+                                           :colOff => array_from_colOff[i],
+                                           :row    => array_from_row[i],
+                                           :rowOff => array_from_rowOff[i]},
+                                 :to   => {:col    => array_to_col[i],
+                                           :colOff => array_to_colOff[i],
+                                           :row    => array_to_row[i],
+                                           :rowOff => array_to_rowOff[i]}
+                                }
         i+= 1
+
+        unless @cord_media.has_key? col_sym
+          @cord_media.merge!({col_sym => {row_sym => rId_sym}})
+        else
+          @cord_media[col_sym].merge!({row_sym => rId_sym})
+        end
       end
       media_hash
+    end
+    
+    def get_media_for_cell(row,col)
+      rId = @cord_media[col.to_s.to_sym][row.to_s.to_sym]
+      media[rId]
     end
 
     private
