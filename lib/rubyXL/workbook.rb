@@ -18,7 +18,8 @@ module RubyXL
       :modified_at, :company, :application, :appversion, :num_fmts, :fonts, :fills,
       :borders, :cell_xfs, :cell_style_xfs, :cell_styles, :shared_strings, :calc_chain,
       :num_strings, :size, :date1904, :external_links, :style_corrector, :drawings,
-      :worksheet_rels, :printer_settings, :macros, :colors, :shared_strings_XML, :defined_names, :column_lookup_hash
+      :worksheet_rels, :printer_settings, :macros, :colors, :shared_strings_XML, :defined_names, 
+      :column_lookup_hash, :dir_path
 
 
     APPLICATION = 'Microsoft Macintosh Excel'
@@ -316,7 +317,49 @@ module RubyXL
         @fills[xf_attributes[:fillId]][:fill][:patternFill][:fgColor][:attributes][:rgb]
       end
     end
+    
+    # удаление каталога
+    def del_catalog
+      FileUtils.rm_rf(self.dir_path)
+    end
 
+    # отдает Hash всех медиа-файлов 
+    def media
+      media_hash  = Hash.new
+
+      xml_draw_rels = Nokogiri::XML(open(dir_path+ '/xl/drawings/_rels/drawing1.xml.rels'))
+      xml_draw      = Nokogiri::XML(open(dir_path+ '/xl/drawings/drawing1.xml'))
+
+      array_from_col    = xml_draw.xpath('//xdr:from//xdr:col').children.collect    {|child| child.to_s}
+      array_from_colOff = xml_draw.xpath('//xdr:from//xdr:colOff').children.collect {|child| child.to_s}
+      array_from_row    = xml_draw.xpath('//xdr:from//xdr:row').children.collect    {|child| child.to_s}
+      array_from_rowOff = xml_draw.xpath('//xdr:from//xdr:rowOff').children.collect {|child| child.to_s}
+
+      array_to_col      = xml_draw.xpath('//xdr:to//xdr:col').children.collect      {|child| child.to_s}
+      array_to_colOff   = xml_draw.xpath('//xdr:to//xdr:colOff').children.collect   {|child| child.to_s}
+      array_to_row      = xml_draw.xpath('//xdr:to//xdr:row').children.collect      {|child| child.to_s}
+      array_to_rowOff   = xml_draw.xpath('//xdr:to//xdr:rowOff').children.collect   {|child| child.to_s}
+
+
+      array_path    = xml_draw_rels.children.children.collect {|elem| elem["Target"]}
+      array_rId     = xml_draw_rels.children.children.collect {|elem| elem["Id"]}
+
+      i=0
+      while i < (array_rId.count-1)
+        media_hash[array_rId[i].to_sym] = {:path => (dir_path + '/xl' + array_path[i].gsub(/[..]/,'')),
+                                           :from => {:col    => array_from_col[i],
+                                                     :colOff => array_from_colOff[i],
+                                                     :row    => array_from_row[i],
+                                                     :rowOff => array_from_rowOff[i]},
+                                           :to   => {:col    => array_to_col[i],
+                                                     :colOff => array_to_colOff[i],
+                                                     :row    => array_to_row[i],
+                                                     :rowOff => array_to_rowOff[i]}
+                                          }
+        i+= 1
+      end
+      media_hash
+    end
 
     private
 
@@ -430,6 +473,6 @@ module RubyXL
 
     def validate_before_write
       ## TODO CHECK IF STYLE IS OK if not raise
-    end
+    end 
   end
 end
