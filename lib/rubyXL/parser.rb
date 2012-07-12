@@ -243,6 +243,8 @@ module RubyXL
       end
 
       wb.dir_path = dir_path
+      wb.media
+
       wb
     end
 
