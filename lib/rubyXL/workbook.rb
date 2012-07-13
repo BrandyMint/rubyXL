@@ -350,7 +350,7 @@ module RubyXL
         col_sym = array_from_col[i].to_sym
         row_sym = array_from_row[i].to_sym
 
-        media_hash[rId_sym] =  {:path => (dir_path + '/xl' + array_path[i].gsub(/[..]/,'')),
+        media_hash[rId_sym] =  {:path => (dir_path + '/xl' + array_path[i].gsub(/\.{2,}/,'')),
                                  :from => {:col    => array_from_col[i],
                                            :colOff => array_from_colOff[i],
                                            :row    => array_from_row[i],
