@@ -17,7 +17,8 @@ module RubyXL
     end
 
     def value
-      is_date? ? @workbook.num_to_date(@value) : @value
+     # is_date? ? @workbook.num_to_date(@value) : 
+     @value
     end
     
     def value=(val)
