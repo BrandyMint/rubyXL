@@ -319,7 +319,7 @@ module RubyXL
     end
     
     # удаление каталога
-    def del_catalog
+    def clean
       FileUtils.rm_rf(self.dir_path)
     end
 
@@ -334,38 +334,35 @@ module RubyXL
       array_rId         = xml_draw.xpath('//xdr:pic//xdr:blipFill//a:blip').collect   {|child| child.attributes["embed"].value}
       array_id          = xml_draw.xpath('//xdr:pic//xdr:nvPicPr//xdr:cNvPr').collect {|child| child.attributes["id"].value}
 
-      array_from_col    = xml_draw.xpath('//xdr:from//xdr:col').children.collect      {|child| child.to_s}
-      array_from_colOff = xml_draw.xpath('//xdr:from//xdr:colOff').children.collect   {|child| child.to_s}
-      array_from_row    = xml_draw.xpath('//xdr:from//xdr:row').children.collect      {|child| child.to_s}
-      array_from_rowOff = xml_draw.xpath('//xdr:from//xdr:rowOff').children.collect   {|child| child.to_s}
+      array_from_col    = xml_draw.xpath('//xdr:from//xdr:col').children
+      array_from_colOff = xml_draw.xpath('//xdr:from//xdr:colOff').children
+      array_from_row    = xml_draw.xpath('//xdr:from//xdr:row').children
+      array_from_rowOff = xml_draw.xpath('//xdr:from//xdr:rowOff').children
 
-      array_to_col      = xml_draw.xpath('//xdr:to//xdr:col').children.collect        {|child| child.to_s}
-      array_to_colOff   = xml_draw.xpath('//xdr:to//xdr:colOff').children.collect     {|child| child.to_s}
-      array_to_row      = xml_draw.xpath('//xdr:to//xdr:row').children.collect        {|child| child.to_s}
-      array_to_rowOff   = xml_draw.xpath('//xdr:to//xdr:rowOff').children.collect     {|child| child.to_s}
-     
+      array_to_col      = xml_draw.xpath('//xdr:to//xdr:col').children
+      array_to_colOff   = xml_draw.xpath('//xdr:to//xdr:colOff').children
+      array_to_row      = xml_draw.xpath('//xdr:to//xdr:row').children
+      array_to_rowOff   = xml_draw.xpath('//xdr:to//xdr:rowOff').children
+      
       # :rId => path 
       hash_rId = Hash.new 
       xml_draw_rels.children.children.each {|elem| hash_rId[elem["Id"].to_sym] = elem["Target"] }
 
-      i=0
-      while i < array_id.count-1
-        col_sym = array_from_col[i].to_sym
-        row_sym = array_from_row[i].to_sym
-        id_sym  = array_id[i].to_sym
-        rId_sym = array_rId[i].to_sym
-        
-        media_hash[id_sym] =    {:path => (dir_path + '/xl' + hash_rId[rId_sym].gsub(/\.{2,}/,'')),
-                                 :from => {:col    => array_from_col[i],
-                                           :colOff => array_from_colOff[i],
-                                           :row    => array_from_row[i],
-                                           :rowOff => array_from_rowOff[i]},
-                                 :to   => {:col    => array_to_col[i],
-                                           :colOff => array_to_colOff[i],
-                                           :row    => array_to_row[i],
-                                           :rowOff => array_to_rowOff[i]}
+      array_id.each_with_index do |id, i|
+        id_sym  = id.to_s.to_sym
+        col_sym = array_from_col[i].to_s.to_sym
+        row_sym = array_from_row[i].to_s.to_sym
+
+        media_hash[id.to_sym] = {:path => (dir_path + '/xl' + hash_rId[array_rId[i].to_s.to_sym].gsub(/\.{2,}/,'')),
+                                 :from => {:col    => array_from_col[i].to_s,
+                                           :colOff => array_from_colOff[i].to_s,
+                                           :row    => array_from_row[i].to_s,
+                                           :rowOff => array_from_rowOff[i].to_s},
+                                 :to   => {:col    => array_to_col[i].to_s,
+                                           :colOff => array_to_colOff[i].to_s,
+                                           :row    => array_to_row[i].to_s,
+                                           :rowOff => array_to_rowOff[i].to_s}
                                 }
-        i+= 1
 
         unless @cord_media.has_key? col_sym
           @cord_media.merge!({col_sym => {row_sym => id_sym }})
@@ -373,6 +370,7 @@ module RubyXL
           @cord_media[col_sym].merge!({row_sym => id_sym})
         end
       end
+      
       media_hash
     end
     
