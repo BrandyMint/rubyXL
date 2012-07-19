@@ -330,27 +330,32 @@ module RubyXL
 
       xml_draw_rels = Nokogiri::XML(open(dir_path+ '/xl/drawings/_rels/drawing1.xml.rels'))
       xml_draw      = Nokogiri::XML(open(dir_path+ '/xl/drawings/drawing1.xml'))
-
-      array_from_col    = xml_draw.xpath('//xdr:from//xdr:col').children.collect    {|child| child.to_s}
-      array_from_colOff = xml_draw.xpath('//xdr:from//xdr:colOff').children.collect {|child| child.to_s}
-      array_from_row    = xml_draw.xpath('//xdr:from//xdr:row').children.collect    {|child| child.to_s}
-      array_from_rowOff = xml_draw.xpath('//xdr:from//xdr:rowOff').children.collect {|child| child.to_s}
-
-      array_to_col      = xml_draw.xpath('//xdr:to//xdr:col').children.collect      {|child| child.to_s}
-      array_to_colOff   = xml_draw.xpath('//xdr:to//xdr:colOff').children.collect   {|child| child.to_s}
-      array_to_row      = xml_draw.xpath('//xdr:to//xdr:row').children.collect      {|child| child.to_s}
-      array_to_rowOff   = xml_draw.xpath('//xdr:to//xdr:rowOff').children.collect   {|child| child.to_s}
-
-      array_path    = xml_draw_rels.children.children.collect {|elem| elem["Target"]}
-      array_rId     = xml_draw_rels.children.children.collect {|elem| elem["Id"]}
       
+      array_rId         = xml_draw.xpath('//xdr:pic//xdr:blipFill//a:blip').collect   {|child| child.attributes["embed"].value}
+      array_id          = xml_draw.xpath('//xdr:pic//xdr:nvPicPr//xdr:cNvPr').collect {|child| child.attributes["id"].value}
+
+      array_from_col    = xml_draw.xpath('//xdr:from//xdr:col').children.collect      {|child| child.to_s}
+      array_from_colOff = xml_draw.xpath('//xdr:from//xdr:colOff').children.collect   {|child| child.to_s}
+      array_from_row    = xml_draw.xpath('//xdr:from//xdr:row').children.collect      {|child| child.to_s}
+      array_from_rowOff = xml_draw.xpath('//xdr:from//xdr:rowOff').children.collect   {|child| child.to_s}
+
+      array_to_col      = xml_draw.xpath('//xdr:to//xdr:col').children.collect        {|child| child.to_s}
+      array_to_colOff   = xml_draw.xpath('//xdr:to//xdr:colOff').children.collect     {|child| child.to_s}
+      array_to_row      = xml_draw.xpath('//xdr:to//xdr:row').children.collect        {|child| child.to_s}
+      array_to_rowOff   = xml_draw.xpath('//xdr:to//xdr:rowOff').children.collect     {|child| child.to_s}
+     
+      # :rId => path 
+      hash_rId = Hash.new 
+      xml_draw_rels.children.children.each {|elem| hash_rId[elem["Id"].to_sym] = elem["Target"] }
+
       i=0
-      while i < (array_rId.count-1)
-        rId_sym = array_rId[i].to_sym
+      while i < array_id.count-1
         col_sym = array_from_col[i].to_sym
         row_sym = array_from_row[i].to_sym
-
-        media_hash[rId_sym] =  {:path => (dir_path + '/xl' + array_path[i].gsub(/\.{2,}/,'')),
+        id_sym  = array_id[i].to_sym
+        rId_sym = array_rId[i].to_sym
+        
+        media_hash[id_sym] =    {:path => (dir_path + '/xl' + hash_rId[rId_sym].gsub(/\.{2,}/,'')),
                                  :from => {:col    => array_from_col[i],
                                            :colOff => array_from_colOff[i],
                                            :row    => array_from_row[i],
@@ -363,17 +368,18 @@ module RubyXL
         i+= 1
 
         unless @cord_media.has_key? col_sym
-          @cord_media.merge!({col_sym => {row_sym => rId_sym}})
+          @cord_media.merge!({col_sym => {row_sym => id_sym }})
         else
-          @cord_media[col_sym].merge!({row_sym => rId_sym})
+          @cord_media[col_sym].merge!({row_sym => id_sym})
         end
       end
       media_hash
     end
     
     def get_media_for_cell(row,col)
-      rId = @cord_media[col.to_s.to_sym][row.to_s.to_sym]
-      media[rId]
+      id = @cord_media[col.to_s.to_sym][row.to_s.to_sym]
+
+      media[id]
     end
 
     private
