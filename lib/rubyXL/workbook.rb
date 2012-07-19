@@ -345,8 +345,8 @@ module RubyXL
       array_to_rowOff   = xml_draw.xpath('//xdr:to//xdr:rowOff').children
       
       # :rId => path 
-      hash_rId = Hash.new 
-      xml_draw_rels.children.children.each {|elem| hash_rId[elem["Id"].to_sym] = elem["Target"] }
+      hash_rId = Hash.new
+      xml_draw_rels.children.children.each {|elem| hash_rId[elem["Id"].to_sym] = elem["Target"] if elem["Id"] }
 
       array_id.each_with_index do |id, i|
         id_sym  = id.to_s.to_sym
@@ -375,6 +375,12 @@ module RubyXL
     end
     
     def get_media_for_cell(row,col)
+      if File.exists? (dir_path+ '/xl/drawings/_rels/drawing1.xml.rels')
+        media
+      else
+        return nil
+      end
+
       id = @cord_media[col.to_s.to_sym][row.to_s.to_sym]
 
       media[id]
