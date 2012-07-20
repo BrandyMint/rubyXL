@@ -328,6 +328,10 @@ module RubyXL
     def media
       @media_hash  = Hash.new
       @cord_media = Hash.new
+      
+      @have_media = (File.exists?(dir_path + '/xl/drawings/_rels/drawing1.xml.rels') ? true : false)
+
+      return unless @have_media
 
       xml_draw_rels = Nokogiri::XML(open(dir_path+ '/xl/drawings/_rels/drawing1.xml.rels'))
       xml_draw      = Nokogiri::XML(open(dir_path+ '/xl/drawings/drawing1.xml'))
@@ -371,22 +375,17 @@ module RubyXL
           @cord_media[col_sym].merge!({row_sym => id_sym})
         end
       end
-      
-      @media_hash
     end
     
-    def get_media_for_cell(row,col)
-      if File.exists? (dir_path+ '/xl/drawings/_rels/drawing1.xml.rels')
-        if @cord_media.blank?
-          media
-        end
+    def get_media_for_cell(row,col)    
+      media if @cord_media.blank?
+      
+      if @have_media
+        id = @cord_media[col.to_s.to_sym][row.to_s.to_sym]
+        return @media_hash[id]
       else
-        return nil
+        return 
       end
-
-      id = @cord_media[col.to_s.to_sym][row.to_s.to_sym]
-
-      @media_hash[id]
     end
 
     private
