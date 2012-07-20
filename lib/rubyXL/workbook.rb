@@ -1,3 +1,4 @@
+# coding: utf-8
 require File.expand_path(File.join(File.dirname(__FILE__),'writer','content_types_writer'))
 require File.expand_path(File.join(File.dirname(__FILE__),'writer','root_rels_writer'))
 require File.expand_path(File.join(File.dirname(__FILE__),'writer','app_writer'))
@@ -325,7 +326,7 @@ module RubyXL
 
     # отдает Hash всех медиа-файлов 
     def media
-      media_hash  = Hash.new
+      @media_hash  = Hash.new
       @cord_media = Hash.new
 
       xml_draw_rels = Nokogiri::XML(open(dir_path+ '/xl/drawings/_rels/drawing1.xml.rels'))
@@ -353,7 +354,7 @@ module RubyXL
         col_sym = array_from_col[i].to_s.to_sym
         row_sym = array_from_row[i].to_s.to_sym
 
-        media_hash[id.to_sym] = {:path => (dir_path + '/xl' + hash_rId[array_rId[i].to_s.to_sym].gsub(/\.{2,}/,'')),
+        @media_hash[id.to_sym] = {:path => (dir_path + '/xl' + hash_rId[array_rId[i].to_s.to_sym].gsub(/\.{2,}/,'')),
                                  :from => {:col    => array_from_col[i].to_s,
                                            :colOff => array_from_colOff[i].to_s,
                                            :row    => array_from_row[i].to_s,
@@ -371,19 +372,21 @@ module RubyXL
         end
       end
       
-      media_hash
+      @media_hash
     end
     
     def get_media_for_cell(row,col)
       if File.exists? (dir_path+ '/xl/drawings/_rels/drawing1.xml.rels')
-        media
+        if @cord_media.blank?
+          media
+        end
       else
         return nil
       end
 
       id = @cord_media[col.to_s.to_sym][row.to_s.to_sym]
 
-      media[id]
+      @media_hash[id]
     end
 
     private
