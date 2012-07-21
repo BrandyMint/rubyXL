@@ -326,66 +326,57 @@ module RubyXL
 
     # отдает Hash всех медиа-файлов 
     def media
-      @media_hash  = Hash.new
-      @cord_media = Hash.new
-      
-      @have_media = (File.exists?(dir_path + '/xl/drawings/_rels/drawing1.xml.rels') ? true : false)
+      @path_media = Hash.new
 
-      return unless @have_media
+      path_file_rels = dir_path + '/xl/drawings/_rels/drawing1.xml.rels' # файл содержит иды и пути к картинкам
+      path_file_xml  = dir_path + '/xl/drawings/drawing1.xml' # файл содержит инфо о ячейках (ид,ид картинки,cell,row)
 
-      xml_draw_rels = Nokogiri::XML(open(dir_path+ '/xl/drawings/_rels/drawing1.xml.rels'))
-      xml_draw      = Nokogiri::XML(open(dir_path+ '/xl/drawings/drawing1.xml'))
+      unless File.exists?(path_file_rels)
+        @have_media = false
+        return 
+      end
+
+      xml_draw_rels = Nokogiri::XML(open(path_file_rels))
+      xml_draw      = Nokogiri::XML(open(path_file_xml))
       
       array_rId         = xml_draw.xpath('//xdr:pic//xdr:blipFill//a:blip').collect   {|child| child.attributes["embed"].value}
       array_id          = xml_draw.xpath('//xdr:pic//xdr:nvPicPr//xdr:cNvPr').collect {|child| child.attributes["id"].value}
 
       array_from_col    = xml_draw.xpath('//xdr:from//xdr:col').children
-      array_from_colOff = xml_draw.xpath('//xdr:from//xdr:colOff').children
+      # array_from_colOff = xml_draw.xpath('//xdr:from//xdr:colOff').children
       array_from_row    = xml_draw.xpath('//xdr:from//xdr:row').children
-      array_from_rowOff = xml_draw.xpath('//xdr:from//xdr:rowOff').children
+      # array_from_rowOff = xml_draw.xpath('//xdr:from//xdr:rowOff').children
 
-      array_to_col      = xml_draw.xpath('//xdr:to//xdr:col').children
-      array_to_colOff   = xml_draw.xpath('//xdr:to//xdr:colOff').children
-      array_to_row      = xml_draw.xpath('//xdr:to//xdr:row').children
-      array_to_rowOff   = xml_draw.xpath('//xdr:to//xdr:rowOff').children
+      #array_to_col      = xml_draw.xpath('//xdr:to//xdr:col').children
+      #array_to_colOff   = xml_draw.xpath('//xdr:to//xdr:colOff').children
+      #array_to_row      = xml_draw.xpath('//xdr:to//xdr:row').children
+      #array_to_rowOff   = xml_draw.xpath('//xdr:to//xdr:rowOff').children
       
-      # :rId => path 
-      hash_rId = Hash.new
-      xml_draw_rels.children.children.each {|elem| hash_rId[elem["Id"].to_sym] = elem["Target"] if elem["Id"] }
+      # :rId => path
+      path_image = Hash.new
+      xml_draw_rels.children.children.each {|elem| path_image[elem["Id"].to_sym] = elem["Target"] if elem["Id"] }
 
       array_id.each_with_index do |id, i|
-        id_sym  = id.to_s.to_sym
-        col_sym = array_from_col[i].to_s.to_sym
-        row_sym = array_from_row[i].to_s.to_sym
+        #id_sym  = id.to_s.to_sym
+        col = array_from_col[i].to_s.to_sym
+        row = array_from_row[i].to_s.to_sym
+        rId = array_rId[i].to_s.to_sym
 
-        @media_hash[id.to_sym] = {:path => (dir_path + '/xl' + hash_rId[array_rId[i].to_s.to_sym].gsub(/\.{2,}/,'')),
-                                 :from => {:col    => array_from_col[i].to_s,
-                                           :colOff => array_from_colOff[i].to_s,
-                                           :row    => array_from_row[i].to_s,
-                                           :rowOff => array_from_rowOff[i].to_s},
-                                 :to   => {:col    => array_to_col[i].to_s,
-                                           :colOff => array_to_colOff[i].to_s,
-                                           :row    => array_to_row[i].to_s,
-                                           :rowOff => array_to_rowOff[i].to_s}
-                                }
+        path    = dir_path + '/xl' + path_image[rId].gsub(/\.{2,}/,'')
 
-        unless @cord_media.has_key? col_sym
-          @cord_media.merge!({col_sym => {row_sym => id_sym }})
+        if @path_media.has_key? col
+          @path_media[col].merge!({row => path})
         else
-          @cord_media[col_sym].merge!({row_sym => id_sym})
+          @path_media.merge!({col => {row => path}})
         end
       end
+      @have_media = true
     end
-    
+
     def get_media_for_cell(row,col)    
-      media if @cord_media.blank?
-      
-      if @have_media
-        id = @cord_media[col.to_s.to_sym][row.to_s.to_sym]
-        return @media_hash[id]
-      else
-        return 
-      end
+      media if @path_media.blank? 
+
+      @path_media[col.to_s.to_sym][row.to_s.to_sym] if @have_media
     end
 
     private
